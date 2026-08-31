@@ -1,0 +1,29 @@
+{
+  "name": "@lnwebworks/outlook-mcp-server",
+  "version": "2.2.0",
+  "description": "Outlook MCP Server for SABA - Microsoft Graph API via Client Credentials",
+  "type": "module",
+  "main": "index.js",
+  "bin": {
+    "outlook-mcp-server": "index.js"
+  },
+  "files": [
+    "index.js",
+    "src",
+    ".env.example",
+    "README.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/access-ctrl/outlook-mcp-server.git"
+  },
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": { "start": "node index.js" },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "zod": "^3.22.0"
+  }
+}
