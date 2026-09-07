@@ -386,7 +386,7 @@ class GraphClient {
     return await this.getCalendarEvents(start, end, userEmail);
   }
 
-  async createEvent({ subject, startTime, endTime, attendees = [], location = 'Microsoft Teams', body = '', force = false }, userEmail = null) {
+  async createEvent({ subject, startTime, endTime, attendees = [], location = '', body = '', isPrivate = false, force = false }, userEmail = null) {
     if (!force) {
       const existing = await this.getCalendarEvents(startTime, endTime, userEmail);
       if (Array.isArray(existing) && existing.length > 0) {
@@ -398,9 +398,11 @@ class GraphClient {
         };
       }
     }
-    const payload = { subject, body: { contentType: 'HTML', content: body }, start: { dateTime: startTime, timeZone: 'W. Australia Standard Time' }, end: { dateTime: endTime, timeZone: 'W. Australia Standard Time' }, location: { displayName: location }, attendees: attendees.map(addr => ({ emailAddress: { address: addr }, type: 'required' })) };
+    const payload = { subject, body: { contentType: 'HTML', content: body }, start: { dateTime: startTime, timeZone: 'W. Australia Standard Time' }, end: { dateTime: endTime, timeZone: 'W. Australia Standard Time' }, attendees: attendees.map(addr => ({ emailAddress: { address: addr }, type: 'required' })) };
+    if (location) payload.location = { displayName: location };
+    if (isPrivate) payload.sensitivity = 'private';
     const resData = await this.graphFetch(`/events`, { method: 'POST', body: JSON.stringify(payload) }, userEmail);
-    if (resData?.id) return { eventId: resData.id, subject, startTime, endTime, attendees, location, status: 'scheduled' };
+    if (resData?.id) return { eventId: resData.id, subject, startTime, endTime, attendees, location, sensitivity: isPrivate ? 'private' : 'normal', status: 'scheduled' };
     return { success: false, error: 'Failed to create calendar event — Graph API did not return an event ID. The event was NOT created.' };
   }
 
@@ -423,6 +425,7 @@ class GraphClient {
     if (updates.endTime) payload.end = { dateTime: updates.endTime, timeZone: 'W. Australia Standard Time' };
     if (updates.location) payload.location = { displayName: updates.location };
     if (updates.body) payload.body = { contentType: 'HTML', content: updates.body };
+    if (typeof updates.isPrivate === 'boolean') payload.sensitivity = updates.isPrivate ? 'private' : 'normal';
     const resData = await this.graphFetch(`/events/${eventId}`, { method: 'PATCH', body: JSON.stringify(payload) }, userEmail);
     if (resData?.id || resData?.success) return { success: true, eventId, updates };
     return { success: false, error: 'Failed to update calendar event — Graph API returned no confirmation.' };

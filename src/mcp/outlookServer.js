@@ -5,7 +5,7 @@
     import { triageEmail } from '../tools/emailTool.js';
     import { getEmailAttachments } from '../tools/getAttachments.js';
 
-    const server = new McpServer({ name: 'OutlookMCPServer', version: '2.2.0' });
+    const server = new McpServer({ name: 'OutlookMCPServer', version: '2.2.3' });
 
     const mailboxSchema = z.string().optional().describe('Target Outlook email address / mailbox. Defaults to primary configured user email if omitted.');
     const ccSchema = z.string().optional().describe('Comma-separated CC email address(es)');
@@ -92,11 +92,11 @@
     async ({ startTime, endTime, mailbox }) => ({ content: [{ type: 'text', text: JSON.stringify(await graphClient.getCalendarEvents(startTime, endTime, mailbox), null, 2) }] }));
 
     server.tool('create_calendar_event', 'Create a new calendar event. Requires approval. Automatically checks for conflicting events in that time range first and refuses (returning conflict:true and the conflicting events) unless force:true is passed — only pass force:true after the user has explicitly approved double-booking.',
-    { subject: z.string(), startTime: z.string(), endTime: z.string(), attendees: z.array(z.string()).optional(), location: z.string().optional(), body: z.string().optional(), force: z.boolean().optional().describe('Skip the conflict check and create anyway. Only set true after explicit user approval to double-book.'), mailbox: mailboxSchema },
-    async ({ subject, startTime, endTime, attendees = [], location = 'Microsoft Teams', body = '', force = false, mailbox }) => ({ content: [{ type: 'text', text: JSON.stringify(await graphClient.createEvent({ subject, startTime, endTime, attendees, location, body, force }, mailbox), null, 2) }] }));
+    { subject: z.string(), startTime: z.string(), endTime: z.string(), attendees: z.array(z.string()).optional(), location: z.string().optional(), body: z.string().optional(), isPrivate: z.boolean().optional().describe('Mark the event private — hides subject, location, and attendees from anyone with shared calendar access except delegates with the private-item override. Maps to Graph API sensitivity=private.'), force: z.boolean().optional().describe('Skip the conflict check and create anyway. Only set true after explicit user approval to double-book.'), mailbox: mailboxSchema },
+    async ({ subject, startTime, endTime, attendees = [], location = '', body = '', isPrivate = false, force = false, mailbox }) => ({ content: [{ type: 'text', text: JSON.stringify(await graphClient.createEvent({ subject, startTime, endTime, attendees, location, body, isPrivate, force }, mailbox), null, 2) }] }));
 
     server.tool('update_calendar_event', 'Update an existing calendar event. If both startTime and endTime are being changed, automatically checks for conflicting events in the new time range first and refuses (returning conflict:true and the conflicting events) unless force:true is passed — only pass force:true after the user has explicitly approved double-booking.',
-    { eventId: z.string(), subject: z.string().optional(), startTime: z.string().optional(), endTime: z.string().optional(), location: z.string().optional(), body: z.string().optional(), force: z.boolean().optional().describe('Skip the conflict check and update anyway. Only set true after explicit user approval to double-book.'), mailbox: mailboxSchema },
+    { eventId: z.string(), subject: z.string().optional(), startTime: z.string().optional(), endTime: z.string().optional(), location: z.string().optional(), body: z.string().optional(), isPrivate: z.boolean().optional().describe('Mark the event private — hides subject, location, and attendees from anyone with shared calendar access except delegates with the private-item override. Maps to Graph API sensitivity=private.'), force: z.boolean().optional().describe('Skip the conflict check and update anyway. Only set true after explicit user approval to double-book.'), mailbox: mailboxSchema },
     async ({ eventId, mailbox, ...updates }) => ({ content: [{ type: 'text', text: JSON.stringify(await graphClient.updateEvent(eventId, updates, mailbox), null, 2) }] }));
 
     server.tool('cancel_calendar_event', 'Cancel a calendar event and notify attendees',
@@ -109,4 +109,4 @@
 
     const transport = new StdioServerTransport();
     await server.connect(transport);
-    console.error('[OutlookMCPServer] v2.2.0 started — multi-mailbox support; attachments now up to 25MB combined (3-25MB auto-chunked via createUploadSession, was hard-capped at 3MB)');
+    console.error('[OutlookMCPServer] v2.2.3 started — create_calendar_event and update_calendar_event now accept isPrivate to mark events sensitivity=private (hides subject/location/attendees from shared-calendar viewers); create_calendar_event no longer forces location to "Microsoft Teams" when the caller omits it (events without an explicit location are now created with no location, matching what the agent reports); multi-mailbox support; attachments up to 25MB combined (3-25MB auto-chunked via createUploadSession, was hard-capped at 3MB)');
